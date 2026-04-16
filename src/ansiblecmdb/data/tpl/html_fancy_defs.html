@@ -932,7 +932,15 @@
 </%def>
 
 <%def name="col_cmdline(host, **kwargs)">
-  ${jsonxs(host, 'ansible_facts.ansible_cmdline', default='')}
+  <%
+    cmdline = jsonxs(host, 'ansible_facts.ansible_cmdline', default={})
+    if isinstance(cmdline, dict):
+        parts = [k if v is True else '{0}={1}'.format(k, v) for k, v in sorted(cmdline.items())]
+        cmdline_str = ' '.join(parts)
+    else:
+        cmdline_str = str(cmdline)
+  %>
+  ${cmdline_str}
 </%def>
 
 ##
