@@ -44,6 +44,9 @@
     {"title": "Timestamp",     "id": "timestamp",     "func": col_gathered,       "sType": "string", "visible": False},
     {"title": "Product Name",  "id": "prodname",      "func": col_prodname,       "sType": "string", "visible": False},
     {"title": "Product Serial","id": "prodserial",    "func": col_prodserial,     "sType": "string", "visible": False},
+    {"title": "Board Name",    "id": "boardname",     "func": col_boardname,      "sType": "string", "visible": False},
+    {"title": "BIOS Version",  "id": "biosversion",   "func": col_biosversion,    "sType": "string", "visible": False},
+    {"title": "Cmdline",       "id": "cmdline",       "func": col_cmdline,        "sType": "string", "visible": False},
   ]
 
   # Include only given columns if -c / --columns is given
@@ -920,6 +923,18 @@
   ${jsonxs(host, 'ansible_facts.ansible_product_serial', default='')}
 </%def>
 
+<%def name="col_boardname(host, **kwargs)">
+  ${jsonxs(host, 'ansible_facts.ansible_board_name', default='')}
+</%def>
+
+<%def name="col_biosversion(host, **kwargs)">
+  ${jsonxs(host, 'ansible_facts.ansible_bios_version', default='')}
+</%def>
+
+<%def name="col_cmdline(host, **kwargs)">
+  ${jsonxs(host, 'ansible_facts.ansible_cmdline', default='')}
+</%def>
+
 ##
 ## Detailed host information blocks
 ##
@@ -1025,6 +1040,8 @@
     <tr><th>Vendor</th><td>${jsonxs(host, 'ansible_facts.ansible_system_vendor',  default='')}</td></tr>
     <tr><th>Product name</th><td>${jsonxs(host, 'ansible_facts.ansible_product_name',  default='')}</td></tr>
     <tr><th>Product serial</th><td>${jsonxs(host, 'ansible_facts.ansible_product_serial',  default='')}</td></tr>
+    <tr><th>Board name</th><td>${jsonxs(host, 'ansible_facts.ansible_board_name',  default='')}</td></tr>
+    <tr><th>BIOS version</th><td>${jsonxs(host, 'ansible_facts.ansible_bios_version',  default='')}</td></tr>
     <tr><th>Architecture</th><td>${jsonxs(host, 'ansible_facts.ansible_architecture',  default='')}</td></tr>
     <tr><th>Form factor</th><td>${jsonxs(host, 'ansible_facts.ansible_form_factor',  default='')}</td></tr>
     <tr><th>Virtualization role</th><td>${jsonxs(host, 'ansible_facts.ansible_virtualization_role',  default='')}</td></tr>
@@ -1063,6 +1080,7 @@
         <tr><th>SELinux</th><td>${r_dict(jsonxs(host, 'ansible_facts.ansible_selinux', default={}), sort=True)}</td></tr>
     % endif
     <tr><th>Package manager</th><td>${jsonxs(host, 'ansible_facts.ansible_pkg_mgr', default='')}</td></tr>
+    <tr><th>Cmdline</th><td>${r_dict(jsonxs(host, 'ansible_facts.ansible_cmdline', default={}), sort=True)}</td></tr>
   </table>
   </div>
 </%def>

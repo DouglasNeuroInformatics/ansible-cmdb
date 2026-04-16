@@ -104,6 +104,8 @@ ${"###"} Hardware
 * **Vendor**: ${host['ansible_facts'].get('ansible_system_vendor', '')}
 * **Product name**: ${host['ansible_facts'].get('ansible_product_name', '')}
 * **Product serial**: ${host['ansible_facts'].get('ansible_product_serial', '')}
+* **Board name**: ${host['ansible_facts'].get('ansible_board_name', '')}
+* **BIOS version**: ${host['ansible_facts'].get('ansible_bios_version', '')}
 * **Architecture**: ${host['ansible_facts'].get('ansible_architecture', '')}
 * **Form factor**: ${host['ansible_facts'].get('ansible_form_factor', '')}
 * **Virtualization role**: ${host['ansible_facts'].get('ansible_virtualization_role', '')}
@@ -132,6 +134,7 @@ ${"###"} Operating System
 * **Locale / Encoding**: <td>${host['ansible_facts'].get('ansible_env', {}).get('LC_ALL', 'Unknown')}
 * **SELinux?**: <td>${host['ansible_facts'].get('ansible_selinux', '')}
 * **Package manager**: <td>${host['ansible_facts'].get('ansible_pkg_mgr', '')}
+* **Cmdline**: <td>${host['ansible_facts'].get('ansible_cmdline', '')}
 
 ${"###"} Network
 
