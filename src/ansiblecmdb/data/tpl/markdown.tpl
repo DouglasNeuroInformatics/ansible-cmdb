@@ -134,7 +134,7 @@ ${"###"} Operating System
 * **Locale / Encoding**: <td>${host['ansible_facts'].get('ansible_env', {}).get('LC_ALL', 'Unknown')}
 * **SELinux?**: <td>${host['ansible_facts'].get('ansible_selinux', '')}
 * **Package manager**: <td>${host['ansible_facts'].get('ansible_pkg_mgr', '')}
-* **Cmdline**: <td>${host['ansible_facts'].get('ansible_cmdline', '')}
+* **Cmdline**: ${host['ansible_facts'].get('ansible_cmdline', '')}
 
 ${"###"} Network
 
