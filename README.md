@@ -49,9 +49,12 @@ Features
   parenthetical grouping, `"quoted phrases"`, and `/regex/` patterns. Works
   alongside the default search box. See [Advanced Search](#advanced-search)
   below for details.
+* Per-column filtering via individual filter inputs below each column header.
+  Numeric columns (vCPUs, RAM, Nr of Ifaces) support comparison operators
+  and ranges. See [Per-column Filtering](#per-column-filtering) below.
 * Stale-page detection: generated pages auto-refresh after 12 hours via a
   `<meta refresh>` tag, and a banner appears when a user returns to a tab
-  older than 12 hours. See [Stale page handling](#stale-page-handling) below.
+  older than 24 hours. See [Stale page handling](#stale-page-handling) below.
 * Host overview and detailed host information.
 * Host and group variables.
 * Gathered host facts and manual custom facts.
@@ -125,6 +128,33 @@ the default search's `?search=` parameter. Both can be combined:
     http://host:3000/?search=prod&adv=(centos OR ubuntu) AND NOT dev
 
 
+Per-column Filtering
+--------------------
+
+Each column header has a small filter input underneath it. Typing into a
+filter narrows the table to rows matching that column's value. Multiple
+column filters can be used at the same time and work alongside the global
+search and advanced search.
+
+**Text columns** perform a substring match (same as the default search box).
+
+**Numeric columns** (vCPUs, RAM [GiB], Nr of Ifaces) support comparison
+operators and ranges:
+
+| Expression | Meaning |
+|------------|---------|
+| `>10` | Greater than 10 |
+| `>=48` | Greater than or equal to 48 |
+| `<4` | Less than 4 |
+| `<=16` | Less than or equal to 16 |
+| `=8` | Exactly 8 |
+| `!=2` | Not equal to 2 |
+| `4-16` | Range: 4 to 16 inclusive |
+| `8` | Exactly 8 (plain number) |
+
+Numeric filter inputs show a placeholder hint (e.g. `e.g. >10`).
+
+
 Stale page handling
 -------------------
 
@@ -138,8 +168,8 @@ client-side safeguards to reduce this:
 2. **Stale banner** — a small script embedded in the page records the
    generation time at render. On `DOMContentLoaded` and whenever the tab
    regains focus (`visibilitychange`), it compares the current time to the
-   generation time. If the age is ≥ 12 hours, a yellow banner appears at the
-   top of the page with a "Reload now" link. Fresh pages show no banner.
+   generation time. If the age is ≥ 24 hours, a yellow banner appears at the
+   top of the page with a "Dismiss" link. Fresh pages show no banner.
 
 The timestamp in the page header is rendered in **UTC** so it's unambiguous
 regardless of the viewer's timezone.

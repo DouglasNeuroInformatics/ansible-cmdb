@@ -181,6 +181,8 @@
       #host_overview tr { border-bottom: 1px solid #F0F0F0; }
       #host_overview tr:hover { background-color: #F0F0F0; }
       #host_overview thead th { text-align: left; color: #707070; padding: 16px 0px 8px 16px; border-bottom: 1px solid #C0C0C0; font-weight: bold; cursor: pointer; background-repeat: no-repeat; background-position: center right; background-image: url("${res_url}/images/sort_both.png"); }
+      #host_overview thead .column-filter th { padding: 4px 0px 8px 16px; border-bottom: 1px solid #C0C0C0; background-image: none; cursor: default; }
+      #host_overview thead .column-filter input { width: 90%; padding: 2px 4px; font-size: 12px; color: #000000; border: 1px solid #ccc; border-radius: 3px; }
       #host_overview thead th.sorting_desc { background-image: url("${res_url}/images/sort_desc.png"); }
       #host_overview thead th.sorting_asc { background-image: url("${res_url}/images/sort_asc.png"); }
       #host_overview tbody td { color: #000000; padding: 8px 12px 8px 12px; }
@@ -279,7 +281,7 @@
     <script type="text/javascript">
       (function(){
         var GENERATED_AT = ${int(datetime.datetime.now().timestamp())};
-        var MAX_AGE_SECONDS = 43200; // 12 hours
+        var MAX_AGE_SECONDS = 86400; // 24 hours
         function checkStale() {
           var ageSec = Math.floor(Date.now() / 1000) - GENERATED_AT;
           if (ageSec >= MAX_AGE_SECONDS) {
@@ -302,8 +304,8 @@
 
 <%def name="html_header_bar(title)">
   <div id="stale_banner">
-    &#9888; This page was generated more than 12 hours ago and may be out of date.
-    <a href="#" onclick="location.reload(); return false;">Reload now</a>
+    &#9888; This page was generated more than 24 hours ago and may be out of date.
+    <a href="#" onclick="this.parentElement.style.display='none'; document.body.classList.remove('has-stale-banner'); return false;">Dismiss</a>
   </div>
   <header>
     <h1>${title}</h1>
@@ -349,6 +351,11 @@
         <tr>
           % for col in cols:
             <th>${col['title']}</th>
+          % endfor
+        </tr>
+        <tr class="column-filter">
+          % for col in cols:
+            <th data-column="${loop.index}" data-stype="${col['sType']}"><input type="text" placeholder="${'e.g. >10' if col['sType'] == 'num' else 'Filter'}" /></th>
           % endfor
         </tr>
       </thead>
@@ -459,6 +466,7 @@
   // Initialize the DataTables jQuery plugin on the host overview table
   var table = $('#host_overview_tbl').DataTable({
     paging: false,
+    orderCellsTop: true,
     dom: 'Bfrtip',
     buttons: [
       { extend: 'csvHtml5',   title: 'ansible-cmdb', exportOptions: { columns: ':visible' } },
@@ -497,6 +505,68 @@
     var newClass = ['col-invisible','col-visible'][Number(column.visible())];
     columnButton.get(0).className = 'col-toggle ' + newClass;
   }
+
+  // Per-column filtering with numeric comparison support
+  var colFilters = {};
+
+  // Parse a numeric filter expression like ">10", "<=48", "20-64", "16"
+  function parseNumFilter(expr) {
+    expr = expr.trim();
+    var m;
+    // Range: "10-50"
+    if ((m = expr.match(/^(\d+\.?\d*)\s*-\s*(\d+\.?\d*)$/))) {
+      var lo = parseFloat(m[1]), hi = parseFloat(m[2]);
+      return function(v) { return v >= lo && v <= hi; };
+    }
+    // Comparison: >=, <=, !=, >, <, =
+    if ((m = expr.match(/^(>=|<=|!=|>|<|=)\s*(\d+\.?\d*)$/))) {
+      var op = m[1], num = parseFloat(m[2]);
+      switch(op) {
+        case '>':  return function(v) { return v > num; };
+        case '>=': return function(v) { return v >= num; };
+        case '<':  return function(v) { return v < num; };
+        case '<=': return function(v) { return v <= num; };
+        case '=':  return function(v) { return v === num; };
+        case '!=': return function(v) { return v !== num; };
+      }
+    }
+    // Plain number: exact match
+    if ((m = expr.match(/^(\d+\.?\d*)$/))) {
+      var num = parseFloat(m[1]);
+      return function(v) { return v === num; };
+    }
+    return null;
+  }
+
+  // Custom search function for numeric column filters
+  $.fn.dataTable.ext.search.push(function(settings, searchData, dataIndex) {
+    for (var colIdx in colFilters) {
+      var f = colFilters[colIdx];
+      if (!f) continue;
+      var cellVal = parseFloat(searchData[colIdx]);
+      if (isNaN(cellVal) || !f(cellVal)) return false;
+    }
+    return true;
+  });
+
+  $('#host_overview_tbl thead .column-filter th').each(function() {
+    var colIdx = parseInt($(this).attr('data-column'));
+    var sType = $(this).attr('data-stype');
+    var input = $('input', this);
+    input.on('keyup change clear', function() {
+      var val = this.value;
+      if (sType === 'num') {
+        colFilters[colIdx] = val ? parseNumFilter(val) : null;
+        table.draw();
+      } else {
+        var col = table.column(colIdx);
+        if (col.search() !== val) {
+          col.search(val).draw();
+        }
+      }
+    });
+    input.on('click', function(e) { e.stopPropagation(); });
+  });
 
   // Show a direct link to the search term
   table.on( 'search.dt', function () {
