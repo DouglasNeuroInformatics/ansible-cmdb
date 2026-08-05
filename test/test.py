@@ -1,6 +1,7 @@
 import sys
 import unittest
 import importlib.util
+import shutil
 import sys
 import os
 
@@ -119,6 +120,34 @@ class InventoryTestCase(unittest.TestCase):
         self.assertIn("web03.dev.local", ansible.hosts)
         # INI file ignored.
         self.assertNotIn("ini_setting", ansible.hosts)
+
+    @unittest.skipIf(
+        shutil.which("ansible-inventory") is None, "requires ansible-inventory"
+    )
+    def testYamlInventory(self):
+        """
+        Verify that a YAML inventory file is handed to ansible-inventory
+        instead of being fed to the ini parser, which would invent hosts out
+        of YAML keywords such as 'all', 'children', 'hosts' and 'vars'.
+        """
+        fact_dirs = ["f_inventory/out"]
+        inventories = ["f_inventory/inventory.yml"]
+        ansible = ansiblecmdb.Ansible(fact_dirs, inventories)
+
+        self.assertIn("debian.dev.local", ansible.hosts)
+        self.assertIn("jib.electricmonk.nl", ansible.hosts)
+
+        # Group vars and host vars are applied.
+        self.assertEqual(
+            ansible.hosts["debian.dev.local"]["hostvars"]["dtap"], "dev"
+        )
+        self.assertEqual(
+            ansible.hosts["jib.electricmonk.nl"]["hostvars"]["comment"], "Workstation"
+        )
+
+        # YAML structural keywords must not show up as hosts.
+        for keyword in ["all", "children", "hosts", "vars", "dtap", "comment"]:
+            self.assertNotIn(keyword, ansible.hosts)
 
 
 class FactCacheTestCase(unittest.TestCase):

@@ -1,0 +1,14 @@
+# YAML format inventory, parsed via 'ansible-inventory'.
+all:
+  children:
+    dev:
+      hosts:
+        debian.dev.local:
+          dtap: dev
+    prod:
+      hosts:
+        eek.electricmonk.nl:
+        jib.electricmonk.nl:
+          comment: Workstation
+      vars:
+        dtap: prod

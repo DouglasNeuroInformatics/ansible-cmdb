@@ -105,6 +105,17 @@ class Ansible(object):
                 )
             )
             self._parse_dyn_inventory(inventory_path)
+        elif os.path.isfile(inventory_path) and inventory_path.endswith(
+            (".yml", ".yaml")
+        ):
+            # YAML inventory file. The ini parser can't read these, so shell
+            # out to ansible-inventory and consume its JSON output.
+            self.log.debug(
+                "{} is a YAML inventory file. Parsing it with ansible-inventory".format(
+                    inventory_path
+                )
+            )
+            self._parse_ansible_inventory(inventory_path)
         elif os.path.isfile(inventory_path):
             # Static inventory hosts file
             self.log.debug(
@@ -374,6 +385,40 @@ class Ansible(object):
                 )
             )
             sys.stderr.write(str(err) + "\n")
+
+    def _parse_ansible_inventory(self, inventory_path):
+        """
+        Parse a YAML inventory file by shelling out to 'ansible-inventory',
+        which emits the same JSON structure as a dynamic inventory script.
+        """
+        self.log.debug("Reading YAML inventory {0}".format(inventory_path))
+        try:
+            proc = subprocess.Popen(
+                ["ansible-inventory", "-i", inventory_path, "--list"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                close_fds=True,
+            )
+            stdout, stderr = proc.communicate()
+        except OSError as err:
+            sys.stderr.write(
+                "Could not execute 'ansible-inventory' to read inventory "
+                "'{0}'. Is Ansible installed and on your PATH?\n".format(inventory_path)
+            )
+            sys.stderr.write(str(err) + "\n")
+            return
+
+        if proc.returncode != 0:
+            sys.stderr.write(
+                "ansible-inventory with inventory file '{0}' returned "
+                "exitcode {1}\n".format(inventory_path, proc.returncode)
+            )
+            sys.stderr.write(stderr.decode("utf8", errors="replace"))
+            return
+
+        dyninv_parser = parser.DynInvParser(stdout.decode("utf8"))
+        for hostname, key_values in dyninv_parser.hosts.items():
+            self.update_host(hostname, key_values)
 
     def update_host(self, hostname, key_values, overwrite=True):
         """
