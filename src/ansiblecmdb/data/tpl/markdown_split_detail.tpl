@@ -139,10 +139,22 @@ ${"###"} <a name="network"></a>Network
     - ${ipv4}
 % endfor
 
-% for iface in sorted(host['ansible_facts'].get('ansible_interfaces', [])):
+<% ifaces = host['ansible_facts'].get('ansible_interfaces', []) %>
+% if len(ifaces) > 0:
+  % if isinstance(ifaces[0], str):
+    ## Interfaces are names; the details live in ansible_facts.ansible_<name>
+    % for iface in sorted(ifaces):
 * **${iface}**:
 ${r_dict(host['ansible_facts'].get('ansible_%s' % (iface), {}), 1)}
-% endfor
+    % endfor
+  % elif isinstance(ifaces[0], dict):
+    ## Interfaces are dicts, with the details already in them (e.g. Windows)
+    % for iface in ifaces:
+* **${iface.get('interface_name', 'Unknown')}**:
+${r_dict(iface, 1)}
+    % endfor
+  % endif
+% endif
 
 ${"###"} <a name="storage"></a>Storage
 
