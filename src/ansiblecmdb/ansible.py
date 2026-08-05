@@ -104,7 +104,15 @@ class Ansible(object):
                     inventory_path
                 )
             )
-            self._parse_dyn_inventory(inventory_path)
+            if not self._parse_dyn_inventory(inventory_path):
+                # It has the executable bit set but isn't actually runnable.
+                # Most likely a normal inventory file that ended up with the
+                # wrong permissions, so read it as one.
+                self.log.debug(
+                    "{} is not executable in practice. Handle as static "
+                    "inventory file".format(inventory_path)
+                )
+                self._parse_hosts_inventory(inventory_path)
         elif os.path.isfile(inventory_path):
             # Static inventory hosts file
             self.log.debug(
@@ -346,6 +354,11 @@ class Ansible(object):
     def _parse_dyn_inventory(self, script):
         """
         Execute a dynamic inventory script and parse the results.
+
+        Returns False if the file could not be executed at all, so the caller
+        can fall back to reading it as a static inventory file. Returns True
+        in every other case, including when the script itself failed -- its
+        output should not be reinterpreted as an ini inventory.
         """
         self.log.debug("Reading dynamic inventory {0}".format(script))
         try:
@@ -355,25 +368,29 @@ class Ansible(object):
                 stderr=subprocess.PIPE,
                 close_fds=True,
             )
-            stdout, stderr = proc.communicate(input)
-            if proc.returncode != 0:
-                sys.stderr.write(
-                    "Dynamic inventory script '{0}' returned "
-                    "exitcode {1}\n".format(script, proc.returncode)
-                )
-                for line in stderr:
-                    sys.stderr.write(line)
-
-            dyninv_parser = parser.DynInvParser(stdout.decode("utf8"))
-            for hostname, key_values in dyninv_parser.hosts.items():
-                self.update_host(hostname, key_values)
         except OSError as err:
-            sys.stderr.write(
-                "Exception while executing dynamic inventory script '{0}':\n\n".format(
-                    script
-                )
+            # The executable bit is set, but the OS can't run it (ENOEXEC for
+            # a plain text inventory that was chmod +x'ed, ENOENT for a bad
+            # shebang, ...). Let the caller retry it as a static inventory.
+            self.log.debug(
+                "Could not execute '{0}' ({1}). Not a dynamic "
+                "inventory script.".format(script, err)
             )
-            sys.stderr.write(str(err) + "\n")
+            return False
+
+        stdout, stderr = proc.communicate()
+        if proc.returncode != 0:
+            sys.stderr.write(
+                "Dynamic inventory script '{0}' returned "
+                "exitcode {1}\n".format(script, proc.returncode)
+            )
+            sys.stderr.write(stderr.decode("utf8", errors="replace"))
+            return True
+
+        dyninv_parser = parser.DynInvParser(stdout.decode("utf8"))
+        for hostname, key_values in dyninv_parser.hosts.items():
+            self.update_host(hostname, key_values)
+        return True
 
     def update_host(self, hostname, key_values, overwrite=True):
         """

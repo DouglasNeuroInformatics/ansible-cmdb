@@ -1,0 +1,5 @@
+# A normal ini inventory that has wrongly ended up with the executable
+# bit set (e.g. copied from a FAT/NTFS filesystem, or a stray chmod +x).
+[execfallback]
+execfallback01.dev.local dtap=dev
+execfallback02.dev.local

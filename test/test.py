@@ -1,6 +1,7 @@
 import sys
 import unittest
 import importlib.util
+import io
 import sys
 import os
 
@@ -119,6 +120,43 @@ class InventoryTestCase(unittest.TestCase):
         self.assertIn("web03.dev.local", ansible.hosts)
         # INI file ignored.
         self.assertNotIn("ini_setting", ansible.hosts)
+
+    def testExecutableStaticInventory(self):
+        """
+        Verify that an inventory file which has the executable bit set but
+        isn't actually runnable falls back to being read as a static
+        inventory, instead of being silently dropped.
+        """
+        fact_dirs = ["f_inventory/out"]
+        inventories = ["f_inventory/hosts_executable"]
+        ansible = ansiblecmdb.Ansible(fact_dirs, inventories)
+        self.assertIn("execfallback01.dev.local", ansible.hosts)
+        self.assertIn("execfallback02.dev.local", ansible.hosts)
+        host = ansible.hosts["execfallback01.dev.local"]
+        self.assertEqual(host["hostvars"]["dtap"], "dev")
+        self.assertIn("execfallback", host["groups"])
+
+    def testFailingDynInventory(self):
+        """
+        Verify that a dynamic inventory script which exits non-zero is
+        reported rather than raising, and that its output is not reinterpreted
+        as a static inventory.
+        """
+        fact_dirs = ["f_inventory/out"]
+        inventories = ["f_inventory/dyninv_failing.py"]
+        stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            ansible = ansiblecmdb.Ansible(fact_dirs, inventories)
+            captured = sys.stderr.getvalue()
+        finally:
+            sys.stderr = stderr
+
+        # The script's own error message must reach the user.
+        self.assertIn("dyninv: something went wrong", captured)
+        self.assertIn("exitcode 1", captured)
+        # Nothing from the script should have been parsed as an inventory.
+        self.assertNotIn("dyninv", ansible.hosts)
 
 
 class FactCacheTestCase(unittest.TestCase):
