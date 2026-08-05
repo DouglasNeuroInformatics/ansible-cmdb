@@ -384,7 +384,7 @@
 
 <%def name="html_host_details(hosts, collapsed=False, skip_empty=False)">
   <div id="hosts">
-    % for hostname, host in hosts.items():
+    % for hostname, host in sorted(hosts.items()):
       <%
       log.debug(u"Rendering host details for {0}".format(hostname))
       %>
@@ -805,7 +805,8 @@
 </%def>
 
 <%def name="col_groups(host, **kwargs)">
-  ${'<br>'.join(jsonxs(host, 'groups', default=''))}
+  ## 'groups' is a set, so sort it to keep generated output stable
+  ${'<br>'.join(sorted(jsonxs(host, 'groups', default='')))}
 </%def>
 
 <%def name="col_cust(host, **kwargs)">

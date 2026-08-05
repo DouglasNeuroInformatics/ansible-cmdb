@@ -127,7 +127,7 @@ class Ansible(object):
                 return
 
             # Scan directory
-            for fname in os.listdir(inventory_path):
+            for fname in sorted(os.listdir(inventory_path)):
                 # Skip files that end with certain extensions or characters
                 if any(
                     fname.endswith(ext)
@@ -161,7 +161,7 @@ class Ansible(object):
                     inventory_path
                 )
             )
-            for fname in os.listdir(inventory_path):
+            for fname in sorted(os.listdir(inventory_path)):
                 # Skip .git folder
                 if fname == ".git":
                     continue
@@ -200,7 +200,7 @@ class Ansible(object):
             self.log.info("No such dir {0}".format(path))
             return
 
-        for entry in os.listdir(path):
+        for entry in sorted(os.listdir(path)):
             # Skip .git folder
             if entry == ".git":
                 continue
@@ -215,7 +215,7 @@ class Ansible(object):
             elif os.path.isdir(full_path):
                 # Parse each file in the directory as a file containing
                 # variables for the host.
-                for file_entry in os.listdir(full_path):
+                for file_entry in sorted(os.listdir(full_path)):
                     p = os.path.join(full_path, file_entry)
                     if not os.path.isdir(p):
                         self._parse_hostvar_file(hostname, p)

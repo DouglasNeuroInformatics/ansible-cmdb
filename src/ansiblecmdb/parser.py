@@ -209,12 +209,17 @@ class HostsParser(object):
 
     def _get_distinct_hostnames(self):
         """
-        Return a set of distinct hostnames found in the entire inventory.
+        Return the distinct hostnames found in the entire inventory, in a
+        stable (sorted) order.
+
+        Callers use this to seed self.hosts, so returning a set would leave
+        that dict in an order that varies between runs (string hashing is
+        randomized per process), and generated output would vary with it.
         """
         hostnames = []
         for section in self.sections:
             hostnames.extend(self._group_get_hostnames(section["name"]))
-        return set(hostnames)
+        return sorted(set(hostnames))
 
     def _apply_section(self, section, hosts):
         """
