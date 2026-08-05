@@ -2,7 +2,6 @@ import sys
 import unittest
 import importlib.util
 import io
-import sys
 import os
 
 sys.path.insert(0, os.path.realpath("../lib"))
@@ -143,7 +142,7 @@ class InventoryTestCase(unittest.TestCase):
         as a static inventory.
         """
         fact_dirs = ["f_inventory/out"]
-        inventories = ["f_inventory/dyninv_failing.py"]
+        inventories = ["f_inventory/dyninv_failing.sh"]
         stderr = sys.stderr
         sys.stderr = io.StringIO()
         try:
