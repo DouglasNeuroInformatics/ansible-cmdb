@@ -75,6 +75,53 @@ class HostParseTestCase(unittest.TestCase):
         self.assertIn("fe03.dev02.local", ansible.hosts)
 
 
+class LimitTestCase(unittest.TestCase):
+    """
+    Test the --limit option's pattern parsing.
+    """
+
+    def _hosts_for_limit(self, limit):
+        fact_dirs = ["f_hostparse/out"]
+        inventories = ["f_hostparse/hosts"]
+        ansible = ansiblecmdb.Ansible(fact_dirs, inventories, limit=limit)
+        return set(ansible.get_hosts().keys())
+
+    def testLimitColonSeparator(self):
+        """
+        Verify that ':' separates limit patterns.
+        """
+        self.assertEqual(self._hosts_for_limit("db:web"), self._hosts_for_limit("db,web"))
+        self.assertIn("db.dev.local", self._hosts_for_limit("db:web"))
+        self.assertIn("web01.dev.local", self._hosts_for_limit("db:web"))
+
+    def testLimitCommaSeparator(self):
+        """
+        Verify that ',' also separates limit patterns. Ansible accepts either,
+        and prefers the comma for ranges and IPv6 addresses.
+        """
+        hosts = self._hosts_for_limit("db,web")
+        self.assertIn("db.dev.local", hosts)
+        self.assertIn("web01.dev.local", hosts)
+        self.assertNotIn("fe01.dev01.local", hosts)
+
+    def testLimitCommaExclude(self):
+        """
+        Verify that '!' exclusion works with the comma separator too.
+        """
+        hosts = self._hosts_for_limit("db,web,!db")
+        self.assertNotIn("db.dev.local", hosts)
+        self.assertIn("web01.dev.local", hosts)
+
+    def testLimitMixedSeparators(self):
+        """
+        Verify that ':' and ',' can be mixed in one limit expression.
+        """
+        hosts = self._hosts_for_limit("db:web,frontend")
+        self.assertIn("db.dev.local", hosts)
+        self.assertIn("web01.dev.local", hosts)
+        self.assertIn("fe01.dev01.local", hosts)
+
+
 class InventoryTestCase(unittest.TestCase):
     def testHostsDir(self):
         """

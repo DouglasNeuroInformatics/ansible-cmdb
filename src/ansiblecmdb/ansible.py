@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 import json
 import subprocess
 import codecs
@@ -71,12 +72,16 @@ class Ansible(object):
         Parse a host / group limit in the form of a string (e.g.
         'all:!cust.acme') into a dict of things to be included and things to be
         excluded.
+
+        Ansible accepts either ':' or ',' as the separator between patterns,
+        so both are honoured here. See:
+        https://docs.ansible.com/ansible/latest/inventory_guide/intro_patterns.html
         """
         if limit is None:
             return None
 
         limit_parsed = {"include": [], "exclude": []}
-        elems = limit.split(":")
+        elems = [elem for elem in re.split(r"[:,]", limit) if elem]
         for elem in elems:
             if elem.startswith("!"):
                 limit_parsed["exclude"].append(elem[1:])
