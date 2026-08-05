@@ -104,6 +104,8 @@ ${"###"} Hardware
 * **Vendor**: ${host['ansible_facts'].get('ansible_system_vendor', '')}
 * **Product name**: ${host['ansible_facts'].get('ansible_product_name', '')}
 * **Product serial**: ${host['ansible_facts'].get('ansible_product_serial', '')}
+* **Board name**: ${host['ansible_facts'].get('ansible_board_name', '')}
+* **BIOS version**: ${host['ansible_facts'].get('ansible_bios_version', '')}
 * **Architecture**: ${host['ansible_facts'].get('ansible_architecture', '')}
 * **Form factor**: ${host['ansible_facts'].get('ansible_form_factor', '')}
 * **Virtualization role**: ${host['ansible_facts'].get('ansible_virtualization_role', '')}
