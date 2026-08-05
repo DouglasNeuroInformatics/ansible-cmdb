@@ -1,7 +1,7 @@
 import sys
 import os
-import re
 import json
+import ipaddress
 import subprocess
 import codecs
 import logging
@@ -67,22 +67,49 @@ class Ansible(object):
         for inventory_path in self.inventory_paths:
             self._parse_groupvar_dir(inventory_path)
 
+    @staticmethod
+    def _is_ip_address(value):
+        """
+        Return True if `value` is a bare IP address. Used to tell an IPv6
+        literal apart from a ':'-separated list of patterns.
+        """
+        try:
+            ipaddress.ip_address(value)
+            return True
+        except ValueError:
+            return False
+
     def _parse_limit(self, limit):
         """
         Parse a host / group limit in the form of a string (e.g.
         'all:!cust.acme') into a dict of things to be included and things to be
         excluded.
 
-        Ansible accepts either ':' or ',' as the separator between patterns,
-        so both are honoured here. See:
+        Ansible accepts either ':' or ',' as the separator between patterns.
+        It resolves the ambiguity with IPv6 literals, which contain colons of
+        their own, by treating a comma-containing expression as a plain list
+        and only falling back to splitting on ':' when there is no comma --
+        which is why its docs recommend the comma for IPv6 and ranges. We do
+        the same, so that
+
+            --limit '2001:db8::1,web'
+
+        keeps the address intact. A lone IPv6 literal has no comma to go by,
+        so it is recognised as a single pattern rather than split. See:
         https://docs.ansible.com/ansible/latest/inventory_guide/intro_patterns.html
         """
         if limit is None:
             return None
 
+        if "," in limit:
+            elems = limit.split(",")
+        elif self._is_ip_address(limit.strip().lstrip("!")):
+            elems = [limit.strip()]
+        else:
+            elems = limit.split(":")
+
         limit_parsed = {"include": [], "exclude": []}
-        elems = [elem for elem in re.split(r"[:,]", limit) if elem]
-        for elem in elems:
+        for elem in [elem.strip() for elem in elems if elem.strip()]:
             if elem.startswith("!"):
                 limit_parsed["exclude"].append(elem[1:])
             else:

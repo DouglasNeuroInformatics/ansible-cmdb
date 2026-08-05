@@ -86,13 +86,18 @@ class LimitTestCase(unittest.TestCase):
         ansible = ansiblecmdb.Ansible(fact_dirs, inventories, limit=limit)
         return set(ansible.get_hosts().keys())
 
+    def _parse_limit(self, limit):
+        ansible = ansiblecmdb.Ansible.__new__(ansiblecmdb.Ansible)
+        return ansible._parse_limit(limit)
+
     def testLimitColonSeparator(self):
         """
-        Verify that ':' separates limit patterns.
+        Verify that ':' separates limit patterns (unchanged behaviour).
         """
-        self.assertEqual(self._hosts_for_limit("db:web"), self._hosts_for_limit("db,web"))
-        self.assertIn("db.dev.local", self._hosts_for_limit("db:web"))
-        self.assertIn("web01.dev.local", self._hosts_for_limit("db:web"))
+        hosts = self._hosts_for_limit("db:web")
+        self.assertEqual(hosts, self._hosts_for_limit("db,web"))
+        self.assertIn("db.dev.local", hosts)
+        self.assertIn("web01.dev.local", hosts)
 
     def testLimitCommaSeparator(self):
         """
@@ -112,14 +117,49 @@ class LimitTestCase(unittest.TestCase):
         self.assertNotIn("db.dev.local", hosts)
         self.assertIn("web01.dev.local", hosts)
 
-    def testLimitMixedSeparators(self):
+    def testLimitEmptyElements(self):
         """
-        Verify that ':' and ',' can be mixed in one limit expression.
+        Verify that doubled and trailing separators are ignored rather than
+        producing empty patterns.
         """
-        hosts = self._hosts_for_limit("db:web,frontend")
-        self.assertIn("db.dev.local", hosts)
-        self.assertIn("web01.dev.local", hosts)
-        self.assertIn("fe01.dev01.local", hosts)
+        self.assertEqual(
+            self._parse_limit("db,,web,"), {"include": ["db", "web"], "exclude": []}
+        )
+        self.assertEqual(
+            self._parse_limit("db::web:"), {"include": ["db", "web"], "exclude": []}
+        )
+
+    def testLimitIpv6NotSplit(self):
+        """
+        Verify that IPv6 literals survive, since they contain ':' themselves.
+
+        Ansible resolves the ambiguity by splitting on ',' when one is present
+        and only otherwise falling back to ':', which is why its docs
+        recommend the comma for IPv6. A lone IPv6 literal is a single pattern.
+        """
+        self.assertEqual(
+            self._parse_limit("2001:db8::1,web"),
+            {"include": ["2001:db8::1", "web"], "exclude": []},
+        )
+        self.assertEqual(
+            self._parse_limit("2001:db8::1"),
+            {"include": ["2001:db8::1"], "exclude": []},
+        )
+        self.assertEqual(
+            self._parse_limit("!2001:db8::1"),
+            {"include": [], "exclude": ["2001:db8::1"]},
+        )
+
+    def testLimitCommaTakesPrecedence(self):
+        """
+        Verify that a ',' anywhere in the expression makes it a comma list,
+        matching ansible.inventory.manager.split_host_pattern -- so 'db:web'
+        in 'db:web,frontend' stays one pattern rather than being split.
+        """
+        self.assertEqual(
+            self._parse_limit("db:web,frontend"),
+            {"include": ["db:web", "frontend"], "exclude": []},
+        )
 
 
 class InventoryTestCase(unittest.TestCase):
