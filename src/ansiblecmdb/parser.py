@@ -19,6 +19,12 @@ class HostsParser(object):
     it (including variables from parent groups and 'vars' groups).
     """
 
+    # Matches a quoted string (group 1) or a '#' comment (group 2). Compiled
+    # once here rather than per parsed line. Quoted backslashes will probably
+    # cause trouble -- consider multiple \', \" and \\ in one line -- but
+    # it's close enough in practice.
+    _COMMENT_RE = re.compile(r'''(".*?"|'.*?')|(#.*)''')
+
     def __init__(self, hosts_contents):
         self.hosts_contents = hosts_contents
         self.hosts = {}
@@ -166,23 +172,16 @@ class HostsParser(object):
         Return the string obtained by removing any # comment from the line,
         respecting quoted strings.
         """
-        # Quoted backslashes will probably cause trouble here -- consider
-        # what might happen with multiple \', \" and \\ in a line -- but
-        # it's close enough in practice.
-        pattern = r'''(".*?"|'.*?')|(#.*)'''
-        # First group captures quoted strings (double or single), second
-        # group captures comments.
-        regex = re.compile(pattern)
+        return self._COMMENT_RE.sub(self._comment_replacer, line)
 
-        def _replacer(match):
-            # If we captured a comment in group 2, remove it. Otherwise
-            # return the captured quoted string in group 1.
-            if match.group(2) is not None:
-                return ""
-            else:
-                return match.group(1)
-
-        return regex.sub(_replacer, line)
+    @staticmethod
+    def _comment_replacer(match):
+        # If we captured a comment in group 2, remove it. Otherwise return
+        # the captured quoted string in group 1.
+        if match.group(2) is not None:
+            return ""
+        else:
+            return match.group(1)
 
     def _parse_vars(self, tokens):
         """
