@@ -1149,7 +1149,13 @@
         <tr><th>SELinux</th><td>${r_dict(jsonxs(host, 'ansible_facts.ansible_selinux', default={}), sort=True)}</td></tr>
     % endif
     <tr><th>Package manager</th><td>${jsonxs(host, 'ansible_facts.ansible_pkg_mgr', default='')}</td></tr>
-    <tr><th>Cmdline</th><td>${r_dict(jsonxs(host, 'ansible_facts.ansible_cmdline', default={}), sort=True)}</td></tr>
+    <% cmdline = jsonxs(host, 'ansible_facts.ansible_cmdline', default={}) %>
+    % if isinstance(cmdline, dict):
+      <tr><th>Cmdline</th><td>${r_dict(cmdline, sort=True)}</td></tr>
+    % else:
+      ## Some platforms may report this fact as a plain string.
+      <tr><th>Cmdline</th><td>${cmdline}</td></tr>
+    % endif
   </table>
   </div>
 </%def>

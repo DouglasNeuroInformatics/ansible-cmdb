@@ -133,7 +133,12 @@ ${"###"} Operating System
 * **SELinux?**: <td>${host['ansible_facts'].get('ansible_selinux', '')}
 * **Package manager**: <td>${host['ansible_facts'].get('ansible_pkg_mgr', '')}
 * **Cmdline**:
-${r_dict(host['ansible_facts'].get('ansible_cmdline', {}), 1)}
+<% cmdline = host['ansible_facts'].get('ansible_cmdline', {}) %>\
+% if isinstance(cmdline, dict):
+${r_dict(cmdline, 1)}\
+% else:
+    * ${cmdline}
+% endif
 
 ${"###"} Network
 
