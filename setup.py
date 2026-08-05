@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
-import re
-from distutils.core import setup
-from setuptools import find_packages
+from setuptools import setup, find_packages
 
 
 def get_long_description():
@@ -25,13 +23,6 @@ def get_version():
         return base
 
 
-def get_data_files(path, strip="", prefix=""):
-    data_files = []
-    for dirpath, dirnames, filenames in os.walk(path):
-        files = [os.path.join(dirpath, filename) for filename in filenames]
-        data_files.append([prefix + dirpath[len(strip) :], files])
-    return data_files
-
 if sys.argv[-1] == "publish":
     os.system("python setup.py sdist upload")
     print("You should also add a git tag for this version:")
@@ -51,12 +42,19 @@ setup(
     package_dir={"": "src"},
     packages=find_packages("src"),
     include_package_data=True,
-    data_files=get_data_files("src/ansiblecmdb/data", strip="src", prefix="lib")
-    + [["lib/ansiblecmdb/", ["src/ansible-cmdb.py"]]],
+    package_data={
+        "ansiblecmdb": [
+            "data/VERSION",
+            "data/tpl/*",
+            "data/static/js/*",
+            "data/static/images/*",
+        ]
+    },
     zip_safe=False,
     install_requires=["mako", "pyyaml", "ushlex", "jsonxs"],
     scripts=[
         "src/ansible-cmdb",
+        "src/ansible-cmdb.py",
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
