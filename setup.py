@@ -51,6 +51,7 @@ setup(
         ]
     },
     zip_safe=False,
+    python_requires=">=3.7",
     install_requires=["mako", "pyyaml", "ushlex", "jsonxs"],
     scripts=[
         "src/ansible-cmdb",
@@ -66,9 +67,8 @@ setup(
         "Natural Language :: English",
         "Operating System :: POSIX",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2.6",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3 :: Only",
         "Topic :: System :: Installation/Setup",
         "Topic :: System :: Systems Administration",
         "Topic :: Utilities",
