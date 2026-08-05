@@ -1,8 +1,8 @@
 import sys
 import unittest
 import importlib.util
+import io
 import shutil
-import sys
 import os
 
 sys.path.insert(0, os.path.realpath("../lib"))
@@ -147,6 +147,52 @@ class InventoryTestCase(unittest.TestCase):
 
         # YAML structural keywords must not show up as hosts.
         for keyword in ["all", "children", "hosts", "vars", "dtap", "comment"]:
+            self.assertNotIn(keyword, ansible.hosts)
+
+    @unittest.skipIf(
+        shutil.which("ansible-inventory") is None, "requires ansible-inventory"
+    )
+    def testYamlInventoryNestedGroups(self):
+        """
+        Verify that a host nested under a child group belongs to the parent
+        group as well, and inherits the parent's vars.
+        """
+        fact_dirs = ["f_inventory/out"]
+        inventories = ["f_inventory/inventory.yml"]
+        ansible = ansiblecmdb.Ansible(fact_dirs, inventories)
+
+        host = ansible.hosts["deepdb01.dev.local"]
+        self.assertIn("dbservers", host["groups"])
+        self.assertIn("infra", host["groups"])
+        self.assertEqual(host["hostvars"]["tier"], "infra")
+
+    @unittest.skipIf(
+        shutil.which("ansible-inventory") is None, "requires ansible-inventory"
+    )
+    def testYamlInventoryUppercaseExtension(self):
+        """
+        Verify that an uppercase '.YML' extension is still recognised as YAML
+        and routed to ansible-inventory.
+
+        Ansible's own inventory plugins only match lowercase extensions, so it
+        will refuse to parse the file. What matters here is that we no longer
+        hand it to the ini parser, which would fabricate hosts out of the YAML
+        structure.
+        """
+        import tempfile
+
+        tmpdir = tempfile.mkdtemp()
+        stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            upper = os.path.join(tmpdir, "INVENTORY.YML")
+            shutil.copyfile("f_inventory/inventory.yml", upper)
+            ansible = ansiblecmdb.Ansible(["f_inventory/out"], [upper])
+        finally:
+            sys.stderr = stderr
+            shutil.rmtree(tmpdir)
+
+        for keyword in ["all", "children", "hosts", "vars", "dtap"]:
             self.assertNotIn(keyword, ansible.hosts)
 
 

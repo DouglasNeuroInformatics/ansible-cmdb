@@ -12,3 +12,12 @@ all:
           comment: Workstation
       vars:
         dtap: prod
+    # Hosts nested under a child group, to check that membership of the
+    # parent group is picked up too.
+    infra:
+      children:
+        dbservers:
+          hosts:
+            deepdb01.dev.local:
+      vars:
+        tier: infra

@@ -370,6 +370,9 @@ class DynInvParser(object):
         self.hosts = {}
         self.dynvinv_json = json.loads(self.dynvinv_contents)
         self.log = logging.getLogger(__name__)
+        # group name -> list of child group names, collected while parsing so
+        # nested group membership can be resolved once everything is known.
+        self.group_children = {}
 
         for k, v in self.dynvinv_json.items():
             if k.startswith("_meta"):
@@ -384,6 +387,35 @@ class DynInvParser(object):
             else:
                 # Group definition
                 self._parse_group(k, v)
+
+        self._apply_group_children()
+
+    def _apply_group_children(self):
+        """
+        Add each group to the hosts of its descendant groups.
+
+        Inventories express hierarchy with a 'children' key, so a host listed
+        only in a leaf group still belongs to every group above it. Without
+        this, such a host would report just the leaf group.
+        """
+
+        def descendants(group_name, seen):
+            # 'seen' guards against a group cycle, which would otherwise
+            # recurse forever on a malformed inventory.
+            if group_name in seen:
+                return set()
+            seen.add(group_name)
+            result = set()
+            for child in self.group_children.get(group_name, []):
+                result.add(child)
+                result.update(descendants(child, seen))
+            return result
+
+        for group_name in self.group_children:
+            for child in descendants(group_name, set()):
+                for host in self.hosts.values():
+                    if child in host["groups"]:
+                        host["groups"].add(group_name)
 
     def _get_host(self, hostname):
         """
@@ -413,6 +445,11 @@ class DynInvParser(object):
             #     }
             #
             hostnames_in_group = set()
+
+            # Remember the hierarchy; it's resolved once all groups are known.
+            children = group.get("children", [])
+            if children:
+                self.group_children[group_name] = children
 
             # Group member with hosts and variable definitions.
             for hostname in group.get("hosts", []):

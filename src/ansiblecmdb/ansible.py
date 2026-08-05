@@ -105,7 +105,7 @@ class Ansible(object):
                 )
             )
             self._parse_dyn_inventory(inventory_path)
-        elif os.path.isfile(inventory_path) and inventory_path.endswith(
+        elif os.path.isfile(inventory_path) and inventory_path.lower().endswith(
             (".yml", ".yaml")
         ):
             # YAML inventory file. The ini parser can't read these, so shell
