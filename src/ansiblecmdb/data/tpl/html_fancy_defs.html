@@ -44,6 +44,7 @@
     {"title": "Timestamp",     "id": "timestamp",     "func": col_gathered,       "sType": "string", "visible": False},
     {"title": "Product Name",  "id": "prodname",      "func": col_prodname,       "sType": "string", "visible": False},
     {"title": "Product Serial","id": "prodserial",    "func": col_prodserial,     "sType": "string", "visible": False},
+    {"title": "Cmdline",       "id": "cmdline",       "func": col_cmdline,        "sType": "string", "visible": False},
   ]
 
   # Include only given columns if -c / --columns is given
@@ -990,6 +991,21 @@
   ${jsonxs(host, 'ansible_facts.ansible_product_serial', default='')}
 </%def>
 
+<%def name="col_cmdline(host, **kwargs)">
+  <%
+    cmdline = jsonxs(host, 'ansible_facts.ansible_cmdline', default={})
+    if isinstance(cmdline, dict):
+        # Ansible represents valueless kernel parameters (e.g. 'quiet') as
+        # True, so render those as a bare key instead of 'quiet=True'.
+        parts = [k if v is True else '{0}={1}'.format(k, v)
+                 for k, v in sorted(cmdline.items(), key=lambda kv: kv[0])]
+        cmdline_str = ' '.join(parts)
+    else:
+        cmdline_str = str(cmdline)
+  %>
+  ${cmdline_str}
+</%def>
+
 ##
 ## Detailed host information blocks
 ##
@@ -1133,6 +1149,7 @@
         <tr><th>SELinux</th><td>${r_dict(jsonxs(host, 'ansible_facts.ansible_selinux', default={}), sort=True)}</td></tr>
     % endif
     <tr><th>Package manager</th><td>${jsonxs(host, 'ansible_facts.ansible_pkg_mgr', default='')}</td></tr>
+    <tr><th>Cmdline</th><td>${r_dict(jsonxs(host, 'ansible_facts.ansible_cmdline', default={}), sort=True)}</td></tr>
   </table>
   </div>
 </%def>
